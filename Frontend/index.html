@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="hu">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Task Manager</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <main class="container">
+
+        <h1>Task Manager</h1>
+
+        <form id="taskForm">
+
+            <input
+                type="hidden"
+                id="taskId"
+            >
+
+            <input
+                type="text"
+                id="title"
+                placeholder="Feladat címe"
+                required
+            >
+
+            <textarea
+                id="description"
+                placeholder="Leírás"
+            ></textarea>
+
+            <select id="status">
+
+                <option value="TODO">
+                    Teendő
+                </option>
+
+                <option value="IN_PROGRESS">
+                    Folyamatban
+                </option>
+
+                <option value="DONE">
+                    Kész
+                </option>
+
+            </select>
+
+            <select id="priority">
+
+                <option value="LOW">
+                    Alacsony prioritás
+                </option>
+
+                <option value="MEDIUM" selected>
+                    Közepes prioritás
+                </option>
+
+                <option value="HIGH">
+                    Magas prioritás
+                </option>
+
+            </select>
+
+            <input
+                type="date"
+                id="dueDate"
+            >
+
+            <button type="submit">
+                Mentés
+            </button>
+
+            <button
+                type="button"
+                id="cancelBtn"
+                class="secondary"
+            >
+                Mégse
+            </button>
+
+        </form>
+
+
+        <div class="filters">
+
+            <label>
+                Státusz:
+            </label>
+
+            <select id="filterStatus">
+
+                <option value="">
+                    Összes
+                </option>
+
+                <option value="TODO">
+                    Teendő
+                </option>
+
+                <option value="IN_PROGRESS">
+                    Folyamatban
+                </option>
+
+                <option value="DONE">
+                    Kész
+                </option>
+
+            </select>
+
+
+            <label>
+                Prioritás:
+            </label>
+
+            <select id="filterPriority">
+
+                <option value="">
+                    Összes
+                </option>
+
+                <option value="LOW">
+                    Alacsony
+                </option>
+
+                <option value="MEDIUM">
+                    Közepes
+                </option>
+
+                <option value="HIGH">
+                    Magas
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <p id="message"></p>
+
+        <section id="tasks"></section>
+
+    </main>
+
+
+    <script src="app.js"></script>
+
+</body>
+
+</html>
