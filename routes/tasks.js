@@ -3,124 +3,226 @@ import db from "../db.js";
 
 const router = Router();
 
-const validStatuses = ["todo", "in_progress", "done"];
+const validStatuses = [
+    "TODO",
+    "IN_PROGRESS",
+    "DONE"
+];
 
-// GET /api/tasks
-router.get("/", (req, res) => {
-  const { status } = req.query;
+const validPriorities = [
+    "LOW",
+    "MEDIUM",
+    "HIGH"
+];
 
-  let sql = "SELECT * FROM tasks";
-  const params = [];
 
-  if (status) {
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ error: "Érvénytelen státusz." });
-    }
-    sql += " WHERE status = ?";
-    params.push(status);
-  }
+// GET - összes feladat
+router.get("/", async (req, res, next) => {
+    try {
+        const { status, priority } = req.query;
 
-  sql += " ORDER BY id DESC";
+        let sql = "SELECT * FROM tasks WHERE 1=1";
+        const params = [];
 
-  db.all(sql, params, (err, rows) => {
-    if (err) return res.status(500).json({ error: "Adatbázis hiba." });
-    res.json(rows);
-  });
-});
+        if (status) {
+            if (!validStatuses.includes(status)) {
+                return res.status(400).json({
+                    error: "Érvénytelen státusz."
+                });
+            }
 
-// GET /api/tasks/:id
-router.get("/:id", (req, res) => {
-  db.get(
-    "SELECT * FROM tasks WHERE id = ?",
-    [req.params.id],
-    (err, row) => {
-      if (err) return res.status(500).json({ error: "Adatbázis hiba." });
-      if (!row) return res.status(404).json({ error: "A feladat nem található." });
-      res.json(row);
-    }
-  );
-});
-
-// POST /api/tasks
-router.post("/", (req, res) => {
-  const { title, description = "", status = "todo", due_date = null } = req.body;
-
-  if (!title || !title.trim()) {
-    return res.status(400).json({ error: "A cím nem lehet üres." });
-  }
-
-  if (!validStatuses.includes(status)) {
-    return res.status(400).json({ error: "Érvénytelen státusz." });
-  }
-
-  db.run(
-    `INSERT INTO tasks (title, description, status, due_date)
-     VALUES (?, ?, ?, ?)`,
-    [title.trim(), description, status, due_date],
-    function (err) {
-      if (err) return res.status(500).json({ error: "Adatbázis hiba." });
-
-      db.get(
-        "SELECT * FROM tasks WHERE id = ?",
-        [this.lastID],
-        (err, row) => {
-          if (err) return res.status(500).json({ error: "Adatbázis hiba." });
-          res.status(201).json(row);
+            sql += " AND status = ?";
+            params.push(status);
         }
-      );
-    }
-  );
-});
 
-// PUT /api/tasks/:id
-router.put("/:id", (req, res) => {
-  const { title, description = "", status, due_date = null } = req.body;
+        if (priority) {
+            if (!validPriorities.includes(priority)) {
+                return res.status(400).json({
+                    error: "Érvénytelen prioritás."
+                });
+            }
 
-  if (!title || !title.trim()) {
-    return res.status(400).json({ error: "A cím nem lehet üres." });
-  }
-
-  if (!validStatuses.includes(status)) {
-    return res.status(400).json({ error: "Érvénytelen státusz." });
-  }
-
-  db.run(
-    `UPDATE tasks
-     SET title = ?, description = ?, status = ?, due_date = ?
-     WHERE id = ?`,
-    [title.trim(), description, status, due_date, req.params.id],
-    function (err) {
-      if (err) return res.status(500).json({ error: "Adatbázis hiba." });
-      if (this.changes === 0) {
-        return res.status(404).json({ error: "A feladat nem található." });
-      }
-
-      db.get(
-        "SELECT * FROM tasks WHERE id = ?",
-        [req.params.id],
-        (err, row) => {
-          if (err) return res.status(500).json({ error: "Adatbázis hiba." });
-          res.json(row);
+            sql += " AND priority = ?";
+            params.push(priority);
         }
-      );
+
+        sql += " ORDER BY id DESC";
+
+        const [tasks] = await db.query(sql, params);
+
+        res.json(tasks);
+
+    } catch (error) {
+        next(error);
     }
-  );
 });
 
-// DELETE /api/tasks/:id
-router.delete("/:id", (req, res) => {
-  db.run(
-    "DELETE FROM tasks WHERE id = ?",
-    [req.params.id],
-    function (err) {
-      if (err) return res.status(500).json({ error: "Adatbázis hiba." });
-      if (this.changes === 0) {
-        return res.status(404).json({ error: "A feladat nem található." });
-      }
 
-      res.json({ message: "A feladat törölve." });
+// GET - egy feladat
+router.get("/:id", async (req, res, next) => {
+    try {
+        const [tasks] = await db.query(
+            "SELECT * FROM tasks WHERE id = ?",
+            [req.params.id]
+        );
+
+        if (tasks.length === 0) {
+            return res.status(404).json({
+                error: "A feladat nem található."
+            });
+        }
+
+        res.json(tasks[0]);
+
+    } catch (error) {
+        next(error);
     }
-  );
 });
+
+
+// POST - új feladat
+router.post("/", async (req, res, next) => {
+    try {
+        const {
+            title,
+            description = "",
+            status = "TODO",
+            priority = "MEDIUM",
+            due_date = null
+        } = req.body;
+
+        if (!title || !title.trim()) {
+            return res.status(400).json({
+                error: "A cím nem lehet üres."
+            });
+        }
+
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({
+                error: "Érvénytelen státusz."
+            });
+        }
+
+        if (!validPriorities.includes(priority)) {
+            return res.status(400).json({
+                error: "Érvénytelen prioritás."
+            });
+        }
+
+        const [result] = await db.query(
+            `INSERT INTO tasks
+            (title, description, status, priority, due_date)
+            VALUES (?, ?, ?, ?, ?)`,
+            [
+                title.trim(),
+                description,
+                status,
+                priority,
+                due_date
+            ]
+        );
+
+        const [tasks] = await db.query(
+            "SELECT * FROM tasks WHERE id = ?",
+            [result.insertId]
+        );
+
+        res.status(201).json(tasks[0]);
+
+    } catch (error) {
+        next(error);
+    }
+});
+
+
+// PUT - feladat módosítása
+router.put("/:id", async (req, res, next) => {
+    try {
+        const {
+            title,
+            description = "",
+            status,
+            priority,
+            due_date = null
+        } = req.body;
+
+        if (!title || !title.trim()) {
+            return res.status(400).json({
+                error: "A cím nem lehet üres."
+            });
+        }
+
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({
+                error: "Érvénytelen státusz."
+            });
+        }
+
+        if (!validPriorities.includes(priority)) {
+            return res.status(400).json({
+                error: "Érvénytelen prioritás."
+            });
+        }
+
+        const [result] = await db.query(
+            `UPDATE tasks
+             SET title = ?,
+                 description = ?,
+                 status = ?,
+                 priority = ?,
+                 due_date = ?
+             WHERE id = ?`,
+            [
+                title.trim(),
+                description,
+                status,
+                priority,
+                due_date,
+                req.params.id
+            ]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                error: "A feladat nem található."
+            });
+        }
+
+        const [tasks] = await db.query(
+            "SELECT * FROM tasks WHERE id = ?",
+            [req.params.id]
+        );
+
+        res.json(tasks[0]);
+
+    } catch (error) {
+        next(error);
+    }
+});
+
+
+// DELETE - feladat törlése
+router.delete("/:id", async (req, res, next) => {
+    try {
+        const [result] = await db.query(
+            "DELETE FROM tasks WHERE id = ?",
+            [req.params.id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                error: "A feladat nem található."
+            });
+        }
+
+        res.json({
+            message: "A feladat sikeresen törölve."
+        });
+
+    } catch (error) {
+        next(error);
+    }
+});
+
 
 export default router;

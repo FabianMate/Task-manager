@@ -1,18 +1,13 @@
-import sqlite3 from "sqlite3";
+import mysql from "mysql2/promise";
+import dotenv from "dotenv";
 
-const db = new sqlite3.Database("./tasks.db");
+dotenv.config();
 
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS tasks (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT NOT NULL,
-      description TEXT DEFAULT '',
-      status TEXT NOT NULL DEFAULT 'todo',
-      due_date TEXT,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+const db = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
 });
 
 export default db;
